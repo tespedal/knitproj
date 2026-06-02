@@ -9,15 +9,15 @@ public record Measurements(double neckCircumferenceCm, double shoulderWidthCm, d
     public Measurements() {
         this(
                 35, // neck
-                37, // shoulder width
+                46, // shoulder width
                 4,  // shoulder across (note: consider renaming, see below)
-                95, // bust
-                80, // underbust
-                76, // waist
+                89, // bust
+                82, // underbust
+                79, // waist
                 41, // back length (corrected from 54 → more realistic)
                 21, // armhole depth
                 29, // upper arm
-                60  // body length (T-shirt typical)
+                58  // body length (T-shirt typical)
         );
     }
 

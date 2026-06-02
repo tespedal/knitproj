@@ -5,7 +5,7 @@ import no.tuva.knitproj.domain.FitPreference;
 public class EaseCalculator {
     public double calculateBustEaseGain(FitPreference fitPreference) {
         return switch (fitPreference) {
-            case NORMAL -> 1.05;
+            case NORMAL -> 1.0;
             case OVERSIZED -> 1.1;
         };
     }

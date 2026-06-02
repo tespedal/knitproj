@@ -1,6 +1,7 @@
 package no.tuva.knitproj;
 
 import no.tuva.knitproj.domain.*;
+import no.tuva.knitproj.pattern.tee.TeeCalculationResults;
 import no.tuva.knitproj.pattern.tee.TeeCalculator;
 import no.tuva.knitproj.pattern.tee.TeeTemplate;
 import no.tuva.knitproj.service.*;
@@ -12,7 +13,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         Measurements measurements = new Measurements();
-        Gauge gauge = new Gauge(28, 32,3);
+        Gauge gauge = new Gauge(22, 28,5);
         PatternRequest request = new PatternRequest(
                 measurements,
                 gauge,
@@ -24,7 +25,7 @@ public class Main {
                 new StitchCalculator()
         );
 
-        CalculatedPatternValues values = calculator.calculate(request);
+        TeeCalculationResults values = calculator.calculate(request);
 
         // Generate sections from template
         TeeTemplate template = new TeeTemplate();
@@ -32,7 +33,6 @@ public class Main {
 
         // Build full result object
         PatternResult result = new PatternResult(
-                values.castOnNeckStitches(),
                 sections
         );
 

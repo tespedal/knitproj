@@ -11,11 +11,7 @@ public class PatternTextFormatter {
         builder.append("TILPASSET T-SKJORTEOPPSKRIFT\n");
         builder.append("==========================\n\n");
 
-        builder.append("Oppleggsmasker: ")
-                .append(result.getCastOnStitches())
-                .append(" masker\n\n");
-
-        for (PatternSection section : result.getSections()) {
+        for (PatternSection section : result.sections()) {
             builder.append(section.getTitle().toUpperCase()).append("\n");
             for (PatternParagraph paragraph : section.getParagraphs()) {
                 builder.append(paragraph.getTitle()).append("\n");
