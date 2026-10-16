@@ -30,12 +30,25 @@ Exit codes: 0 success/help, 1 file I/O error, 2 invalid request or arguments.
 Input
 -----
 Input is a UTF-8 Java properties file, not executable configuration. Omitted
-properties use the legacy defaults. Unknown property names are rejected.
+properties use the documented defaults. Unknown property names are rejected.
 Decimal values use a dot; gauge stitch/row counts must be whole numbers.
 All lengths and body measurements use centimetres, needle size uses millimetres,
 and gauge counts refer to 10 cm. See examples/measurements.properties for keys.
 Input validation rejects invalid numbers and some incompatible geometry; passing
 validation does not establish that a garment fits or is knit-ready.
+
+Shaping gain factors (dimensionless, finite and greater than zero):
+  armholeDepthGain=1.2     multiplies armholeDepthCm before halving for shaping
+  shoulderWidthGain=0.85  multiplies the full shoulderWidthCm measurement
+Set these properties in the input file to choose the gains independently of fit.
+The shoulder gain replaces the former 0.8 factor; it is not multiplied by it.
+Use armholeDepthGain=1.0 and shoulderWidthGain=0.8 to reproduce legacy shaping.
+Large shoulder gains can conflict with the bust target and are rejected rather
+than silently changing chest sizing. Rounding can mask small gain adjustments.
+Armhole depth gain adds vertical shaping room; it is not upper-arm circumference
+ease. Defaults were changed following reported armhole tightness; fit still needs
+a new knit-through. The tracked output/tshirt-pattern.txt is a historical example,
+not the current default output.
 
 Architecture
 ------------

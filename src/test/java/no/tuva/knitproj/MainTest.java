@@ -18,9 +18,11 @@ class MainTest {
     Path directory;
 
     @Test
-    void defaultCliWritesExactUtf8SnapshotAndExplainDoesNotChangePattern() throws IOException {
+    void legacyGainsWriteExactUtf8SnapshotAndExplainDoesNotChangePattern() throws IOException {
+        Path input = directory.resolve("legacy.properties");
+        Files.writeString(input, "armholeDepthGain=1.0\nshoulderWidthGain=0.8\n");
         Path output = directory.resolve("nested/pattern.txt");
-        var result = run("--output", output.toString(), "--explain");
+        var result = run("--input", input.toString(), "--output", output.toString(), "--explain");
         assertEquals(0, result.status());
         assertEquals("", result.err());
         assertTrue(result.out().contains("Cast on neck"));
@@ -36,16 +38,29 @@ class MainTest {
     }
 
     @Test
+    void defaultGainsReachRenderedPatternAndExplain() throws IOException {
+        Path output = directory.resolve("default.txt");
+        var result = run("--output", output.toString(), "--explain");
+        assertEquals(0, result.status(), result.err());
+        assertTrue(result.out().contains("After armhole increases: body=172, shoulder/underarm per side=46, total=264, repeats=18"));
+        String pattern = Files.readString(output);
+        assertTrue(pattern.contains("18 ganger = 264 masker"));
+        assertTrue(pattern.contains("3 ganger = 288 masker"));
+        assertTrue(pattern.contains("62 masker"));
+    }
+
+    @Test
     void propertiesCustomizeGaugeFitAndSleeveLength() throws IOException {
         Path input = directory.resolve("request.properties");
         Path output = directory.resolve("custom.txt");
         Files.writeString(input, "stitchesPer10Cm=18\nrowsPer10Cm=24\nneedleSizeMm=4.5\n"
-                + "fit=oversized\nsleeveLengthCm=12.5\n");
+                + "fit=oversized\nsleeveLengthCm=12.5\narmholeDepthGain=1.0\nshoulderWidthGain=0.8\n");
         var result = run("--input", input.toString(), "--output", output.toString());
         assertEquals(0, result.status(), result.err());
         String pattern = Files.readString(output);
         assertTrue(pattern.contains("Legg opp 96 masker på rundpinne 4.5"));
         assertTrue(pattern.contains("12.5 cm"));
+        assertTrue(pattern.contains("13 ganger = 204 masker"));
     }
 
     @ParameterizedTest
@@ -66,6 +81,20 @@ class MainTest {
         assertEquals(2, result.status());
         assertFalse(result.err().isBlank());
         assertFalse(Files.exists(output));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"armholeDepthGain=NaN", "shoulderWidthGain=0",
+            "shoulderWidthGain=2", "armholeDepthGain=1.7976931348623157E308"})
+    void invalidGainsDoNotOverwriteExistingOutput(String property) throws IOException {
+        Path input = directory.resolve("invalid-gain.properties");
+        Path output = directory.resolve("retained.txt");
+        Files.writeString(input, property);
+        Files.writeString(output, "existing pattern");
+        var result = run("--input", input.toString(), "--output", output.toString());
+        assertEquals(2, result.status());
+        assertFalse(result.err().isBlank());
+        assertEquals("existing pattern", Files.readString(output));
     }
 
     @Test

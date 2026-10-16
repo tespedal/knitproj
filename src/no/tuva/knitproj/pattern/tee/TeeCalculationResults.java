@@ -22,7 +22,7 @@ public record TeeCalculationResults(
     }
 
     public String explain() {
-        StringBuilder result = new StringBuilder("Legacy calculation trace (not knitting approval)\n");
+        StringBuilder result = new StringBuilder("Calculation trace (not knitting approval)\n");
         for (TeeStage stage : new TeeStage[]{castOnNeck, afterNeck, afterShoulder,
                 afterArmInc, afterRaglan, afterArmHole}) {
             result.append(stage.name()).append(": body=").append(stage.bodyStitches())

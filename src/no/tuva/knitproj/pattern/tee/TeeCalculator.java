@@ -7,7 +7,6 @@ import no.tuva.knitproj.service.StitchCalculator;
 public class TeeCalculator {
     private static final int CHEST_RAGLAN_LINES = 4;
     static final int NECK_INCREASE_ROUNDS = 10;
-    private static final double SHOULDER_WIDTH_FACTOR = 0.8;
 
     private final EaseCalculator easeCalculator;
     private final StitchCalculator stitchCalculator;
@@ -18,8 +17,15 @@ public class TeeCalculator {
     }
 
     public TeeCalculationResults calculate(PatternRequest request) {
+        return calculate(request, new TeeOptions());
+    }
+
+    public TeeCalculationResults calculate(PatternRequest request, TeeOptions options) {
         if (request == null) {
             throw new IllegalArgumentException("Pattern request is required.");
+        }
+        if (options == null) {
+            throw new IllegalArgumentException("T-shirt options are required.");
         }
         Measurements measurements = request.getMeasurements();
         Gauge gauge = request.getGauge();
@@ -49,7 +55,7 @@ public class TeeCalculator {
         );
 
         double shoulderLengthCm =
-                (measurements.shoulderWidthCm() * SHOULDER_WIDTH_FACTOR - frontPatchCm) / 2;
+                (measurements.shoulderWidthCm() * options.shoulderWidthGain() - frontPatchCm) / 2;
 
         int shoulderLengthStitches = widthStitches(shoulderLengthCm, gauge);
         if (shoulderLengthStitches < NECK_INCREASE_ROUNDS) {
@@ -62,9 +68,9 @@ public class TeeCalculator {
                 shoulderLengthStitches
         );
 
-        double armholeLengthCm = measurements.armholeDepthCm() / 2;
-        int armholeLengthStitches = heightStitches(armholeLengthCm, gauge);
-        int armholeIncreases = armholeLengthStitches / 2;
+        double armholeLengthCm = measurements.armholeDepthCm() * options.armholeDepthGain() / 2;
+        int armholeRows = heightRows(armholeLengthCm, gauge);
+        int armholeIncreases = armholeRows / 2;
 
         TeeStage afterArmInc = afterShoulder.addShoulders(
                 "After armhole increases",
@@ -118,7 +124,7 @@ public class TeeCalculator {
         return stitchCalculator.calculateStitches(cm, gauge.getStitchesPer10Cm());
     }
 
-    private int heightStitches(double cm, Gauge gauge) {
+    private int heightRows(double cm, Gauge gauge) {
         return stitchCalculator.calculateStitches(cm, gauge.getStitchesPer10CmHeight());
     }
 }

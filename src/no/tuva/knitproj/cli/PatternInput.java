@@ -19,7 +19,7 @@ public record PatternInput(PatternRequest request, TeeOptions options) {
             "neckCircumferenceCm", "shoulderWidthCm", "shoulderAcrossCm", "bustCircumferenceCm",
             "underbustCircumferenceCm", "waistCircumferenceCm", "backLengthCm", "armholeDepthCm",
             "upperArmCircumferenceCm", "bodyLengthCm", "stitchesPer10Cm", "rowsPer10Cm",
-            "needleSizeMm", "fit", "sleeveLengthCm");
+            "needleSizeMm", "fit", "sleeveLengthCm", "armholeDepthGain", "shoulderWidthGain");
 
     public static PatternInput defaults() {
         return fromProperties(new Properties());
@@ -61,8 +61,11 @@ public record PatternInput(PatternRequest request, TeeOptions options) {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("fit must be NORMAL or OVERSIZED.", e);
         }
+        TeeOptions defaultOptions = new TeeOptions();
         return new PatternInput(new PatternRequest(measurements, gauge, fit),
-                new TeeOptions(number(properties, "sleeveLengthCm", 10)));
+                new TeeOptions(number(properties, "sleeveLengthCm", defaultOptions.sleeveLengthCm()),
+                        number(properties, "armholeDepthGain", defaultOptions.armholeDepthGain()),
+                        number(properties, "shoulderWidthGain", defaultOptions.shoulderWidthGain())));
     }
 
     private static double number(Properties properties, String key, double fallback) {

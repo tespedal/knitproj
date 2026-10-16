@@ -19,15 +19,16 @@ class PatternGeneratorTest {
     private final PatternTextFormatter formatter = new PatternTextFormatter();
 
     @Test
-    void defaultApplicationGenerationMatchesCapturedLegacyOutput() throws IOException {
-        GeneratedPattern generated = generator.generate(request);
+    void legacyGainsMatchCapturedOutput() throws IOException {
+        GeneratedPattern generated = generator.generate(request, new TeeOptions(10, 1.0, 0.8));
         try (var stream = getClass().getResourceAsStream("/default-pattern.txt")) {
             assertNotNull(stream);
             assertEquals(new String(stream.readAllBytes(), StandardCharsets.UTF_8),
                     formatter.format(generated.pattern()));
         }
         assertEquals(41, generated.calculations().backLength());
-        assertEquals(generated.calculations(), generator.generate(request, new TeeOptions()).calculations());
+        assertEquals(generator.generate(request).calculations(),
+                generator.generate(request, new TeeOptions()).calculations());
     }
 
     @Test

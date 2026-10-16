@@ -18,7 +18,7 @@ public final class PatternGenerator {
             throw new IllegalArgumentException("T-shirt options are required.");
         }
         var calculations = new TeeCalculator(new EaseCalculator(), new StitchCalculator())
-                .calculate(request);
+                .calculate(request, options);
         var pattern = new PatternResult(new TeeTemplate().createSections(request, calculations, options));
         return new GeneratedPattern(calculations, pattern);
     }
