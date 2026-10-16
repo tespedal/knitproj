@@ -15,9 +15,9 @@ Build and run
 From the repository root, with JDK 17 and network access for the first build:
 
   ./mvnw verify
-  java -jar target/knitproj-1.0-SNAPSHOT.jar --help
-  java -jar target/knitproj-1.0-SNAPSHOT.jar --explain
-  java -jar target/knitproj-1.0-SNAPSHOT.jar \
+  java -jar target/knitproj-1.0.0-SNAPSHOT.jar --help
+  java -jar target/knitproj-1.0.0-SNAPSHOT.jar --explain
+  java -jar target/knitproj-1.0.0-SNAPSHOT.jar \
     --input examples/measurements.properties --output output/custom-pattern.txt
 
 Use mvnw.cmd on Windows. The Maven wrapper pins the build-tool version.

@@ -10,7 +10,7 @@
 ## Commands and boundaries
 
 - Verify: `./mvnw verify` (Windows: `mvnw.cmd verify`).
-- Run: `java -jar target/knitproj-1.0-SNAPSHOT.jar --explain`.
+- Run: `java -jar target/knitproj-1.0.0-SNAPSHOT.jar --explain`.
 - Production: `src/no/tuva/knitproj`; tests: `src/test`.
 - `domain`: validated inputs; `pattern/tee`: pure calculations and templates.
 - `application`: coordinates generation without I/O; `cli` and file writer: adapters.
