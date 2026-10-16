@@ -8,4 +8,28 @@ public record TeeCalculationResults(
         TeeStage afterRaglan,
         TeeStage afterArmHole,
         double backLength
-) {}
+) {
+    public int shoulderRoundsAfterNeck() {
+        return afterShoulder.nrIncreases() - TeeCalculator.NECK_INCREASE_ROUNDS;
+    }
+
+    public int neckReturnBackStitches() {
+        return castOnNeck.backPatchStitches() * 2 + 2;
+    }
+
+    public int sleeveStitches() {
+        return afterRaglan.shoulder() + afterArmHole.shoulder();
+    }
+
+    public String explain() {
+        StringBuilder result = new StringBuilder("Legacy calculation trace (not knitting approval)\n");
+        for (TeeStage stage : new TeeStage[]{castOnNeck, afterNeck, afterShoulder,
+                afterArmInc, afterRaglan, afterArmHole}) {
+            result.append(stage.name()).append(": body=").append(stage.bodyStitches())
+                    .append(", shoulder/underarm per side=").append(stage.shoulder())
+                    .append(", total=").append(stage.totalStitches())
+                    .append(", repeats=").append(stage.nrIncreases()).append('\n');
+        }
+        return result.toString();
+    }
+}

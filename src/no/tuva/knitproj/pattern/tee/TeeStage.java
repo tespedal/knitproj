@@ -1,6 +1,6 @@
 package no.tuva.knitproj.pattern.tee;
 
-record TeeStage(String name, int halfBody, int shoulder, int nrIncreases) {
+public record TeeStage(String name, int halfBody, int shoulder, int nrIncreases) {
 
     public TeeStage {
         if (halfBody % 2 != 0) {
@@ -9,11 +9,11 @@ record TeeStage(String name, int halfBody, int shoulder, int nrIncreases) {
         }
     }
 
-    int frontPatchStitches() {
+    public int frontPatchStitches() {
         return halfBody;
     }
 
-    int backPatchStitches() {
+    public int backPatchStitches() {
         return halfBody / 2;
     }
 
@@ -21,7 +21,7 @@ record TeeStage(String name, int halfBody, int shoulder, int nrIncreases) {
         return 2 * halfBody + 2 * shoulder;
     }
 
-    int bodyStitches() {
+    public int bodyStitches() {
         return 2 * halfBody;
     }
 

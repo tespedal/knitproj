@@ -10,6 +10,12 @@ public class TeeTemplate {
             PatternRequest request,
             TeeCalculationResults values
     ) {
+        return createSections(request, values, new TeeOptions());
+    }
+
+    public List<PatternSection> createSections(
+            PatternRequest request, TeeCalculationResults values, TeeOptions options
+    ) {
         Gauge gauge = request.getGauge();
 
         TeeStage castOn = values.castOnNeck();
@@ -62,7 +68,7 @@ public class TeeTemplate {
                                         " masker rett (bakstykket), strikk 1 skulderøkning fra retten, strikk 3 masker rett, vend.\n" +
 
                                         "2. pinne (fra vrangen): Strikk 4 masker vrang, strikk 1 skulderøkning fra vrangen, strikk " +
-                                        (castOn.backPatchStitches() * 2 + 2) +
+                                        values.neckReturnBackStitches() +
                                         " masker vrang (bakstykket), 1 skulderøkning fra vrangen, strikk 3 vrang, vend.\n" +
 
                                         "3. pinne (fra retten): Strikk rett til maskemarkøren ved skulderen, strikk 1 skulderøkning fra retten, " +
@@ -84,7 +90,7 @@ public class TeeTemplate {
                                 "Strikk videre rundt på rundpinne med skulderøkninger uten vendinger:",
                                 "1. omgang: Strikk rett frem til maskemarkøren, 1 skulderøkning, strikk rett over forstykket, " +
                                         "1 skulderøkning, strikk til omgangens begynnelse (= 4 masker økt).\n" +
-                                        "Strikk denne omgangen totalt " + (afterShoulder.nrIncreases() - 10) +
+                                        "Strikk denne omgangen totalt " + values.shoulderRoundsAfterNeck() +
                                         " ganger = " + afterShoulder.totalStitches() + " masker."
                         )
                 )),
@@ -148,11 +154,13 @@ public class TeeTemplate {
                                 "Sett de " + afterRaglan.shoulder() + " maskene tilbake på pinne " +
                                         gauge.getNeedleSize() + ". Plukk opp " +
                                         afterArmHole.shoulder() + " masker i maskene du la opp under ermet ( = " +
-                                        (afterRaglan.shoulder() + afterArmHole.shoulder()) + " masker). Sett en maskemarkør i midten av de nyopplukkede maskene. "
+                                        values.sleeveStitches() + " masker). Sett en maskemarkør i midten av de nyopplukkede maskene. "
 
                         ),
                         new PatternParagraph(
-                                "Strikk rundt i glattstrikk til ermet måler 10 cm.",
+                                "Strikk rundt i glattstrikk til ermet måler " +
+                                        java.math.BigDecimal.valueOf(options.sleeveLengthCm())
+                                                .stripTrailingZeros().toPlainString() + " cm.",
                                 "Fell av maskene og fest tråden. Strikk det andre ermet på samme måte."
 
                         )

@@ -5,10 +5,8 @@ import no.tuva.knitproj.service.EaseCalculator;
 import no.tuva.knitproj.service.StitchCalculator;
 
 public class TeeCalculator {
-    private static final int RAGLAN_LINES = 4;
     private static final int CHEST_RAGLAN_LINES = 4;
-    private static final int SHOULDER_RAGLAN_LINES = 4;
-    private static final int NECK_INCREASE_ROUNDS = 10;
+    static final int NECK_INCREASE_ROUNDS = 10;
     private static final double SHOULDER_WIDTH_FACTOR = 0.8;
 
     private final EaseCalculator easeCalculator;
@@ -20,6 +18,9 @@ public class TeeCalculator {
     }
 
     public TeeCalculationResults calculate(PatternRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Pattern request is required.");
+        }
         Measurements measurements = request.getMeasurements();
         Gauge gauge = request.getGauge();
 
@@ -28,6 +29,9 @@ public class TeeCalculator {
 
         double shoulderPatchCm = measurements.shoulderAcrossCm();
         double frontPatchCm = (neckCm - 2 * shoulderPatchCm) / 2;
+        if (frontPatchCm <= 0) {
+            throw new IllegalArgumentException("Neck circumference with ease must exceed both shoulder patches.");
+        }
 
         TeeStage castOnNeck = new TeeStage(
                 "Cast on neck",
@@ -48,6 +52,9 @@ public class TeeCalculator {
                 (measurements.shoulderWidthCm() * SHOULDER_WIDTH_FACTOR - frontPatchCm) / 2;
 
         int shoulderLengthStitches = widthStitches(shoulderLengthCm, gauge);
+        if (shoulderLengthStitches < NECK_INCREASE_ROUNDS) {
+            throw new IllegalArgumentException("Shoulder width cannot accommodate the ten neck-shaping rounds.");
+        }
 
         TeeStage afterShoulder = castOnNeck.addBody(
                 "After shoulder increases",
@@ -72,6 +79,9 @@ public class TeeCalculator {
 
         int targetChestStitches = widthStitches(finishedChestCm, gauge);
         int raglanIncreases = (targetChestStitches - afterArmInc.bodyStitches() - castOnNeck.shoulder()) / CHEST_RAGLAN_LINES;
+        if (targetChestStitches < afterArmInc.bodyStitches() + castOnNeck.shoulder()) {
+            throw new IllegalArgumentException("Bust target is too small for the preceding shoulder shaping.");
+        }
 
         TeeStage afterRaglan = afterArmInc.addBodyAndShoulders(
                 "After raglan increases",
@@ -85,6 +95,13 @@ public class TeeCalculator {
         );
 
 
+
+        for (TeeStage stage : new TeeStage[]{castOnNeck, afterNeck, afterShoulder,
+                afterArmInc, afterRaglan, afterArmHole}) {
+            if (stage.halfBody() <= 0 || stage.shoulder() <= 0 || stage.nrIncreases() < 0) {
+                throw new IllegalArgumentException("Measurements produce an invalid stage: " + stage.name());
+            }
+        }
 
         return new TeeCalculationResults(
                 castOnNeck,

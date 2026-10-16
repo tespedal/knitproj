@@ -7,9 +7,14 @@ import java.nio.file.StandardOpenOption;
 
 public class PatternFileWriter {
     public void writeToFile(String content, String fileName) throws IOException {
-        Path outputPath = Path.of("output", fileName);
+        writeToFile(content, Path.of("output", fileName));
+    }
 
-        Files.createDirectories(outputPath.getParent());
+    public void writeToFile(String content, Path outputPath) throws IOException {
+        Path parent = outputPath.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
 
         Files.writeString(
                 outputPath,
