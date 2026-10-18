@@ -1,0 +1,113 @@
+PRODUCT CONTRACT AND CONSOLIDATION DECISION
+
+Priority: usable knitting patterns, maintainability, then development automation.
+
+Inventory
+---------
+The inspected checkout contains one Java implementation and one generated text
+example. Entry point: no.tuva.knitproj.Main. Construction: top-down T-shirt with
+neck short rows, shoulder increases, sleeve increases, raglan increases, body,
+and two short sleeves. Fit values: NORMAL and OVERSIZED. Output: Norwegian text.
+User input, sleeve length, and armhole/shoulder gains are configurable.
+
+Decision: retain Java 17 as the provisional canonical engine. Do not rewrite or
+delete an unseen implementation. When it becomes available, compare the same
+inputs and intermediate counts, list unique features, preserve them in tests,
+then obtain explicit approval for discrepancies before retiring duplicate logic.
+Any future foreign-language frontend must call this engine, not copy formulas.
+
+Measurement and gauge semantics
+-------------------------------
+Measurements are positive finite centimetres:
+neckCircumferenceCm=35, shoulderWidthCm=46, shoulderAcrossCm=4,
+bustCircumferenceCm=89, underbustCircumferenceCm=82, waistCircumferenceCm=79,
+backLengthCm=41, armholeDepthCm=21, upperArmCircumferenceCm=29, bodyLengthCm=58.
+shoulderAcrossCm currently means one shoulder patch width in the cast-on split.
+backLengthCm controls the written body stopping length; its exact measurement
+origin requires knitter confirmation. Underbust, waist, upper arm, and body length
+are retained inputs but do not currently shape the garment.
+
+Gauge defaults: 22 horizontal stitches and 28 vertical rows per 10 cm, 5 mm needle.
+The legacy Java accessor calls vertical gauge "stitchesPer10CmHeight"; input uses
+the clearer rowsPer10Cm. This naming improvement does not change row arithmetic.
+Sleeve length is measured as stated in the existing sleeve instructions and
+defaults to 10 cm. There is no automatic gauge-to-needle-size inference.
+
+Preserved arithmetic
+--------------------
+NORMAL: bust multiplier 1.0, neck multiplier 1.3.
+OVERSIZED: bust multiplier 1.1, neck multiplier 1.5.
+Conversions first Math.round and then increase odd results by one. This is NOT
+equivalent to rounding directly to the closest even number. It is also applied
+to the vertical gauge in the legacy algorithm.
+Odd half-body counts are increased by one while each shoulder loses one stitch,
+preserving the total. Neck shaping uses ten rounds.
+Post-shoulder counts are calculated cumulatively from cast-on, not from after-neck.
+Raglan repeats use integer division; residual stitches are not redistributed.
+These are characterization facts, except for the requested gain changes below.
+
+User-requested gain change
+--------------------------
+Following a knit test reported as too tight at the armholes, the user requested
+multiplicative gains with defaults armholeDepthGain=1.2 and shoulderWidthGain=0.85.
+Both gains are configurable positive finite numbers, independent of fit.
+The full shoulder width measurement is multiplied by shoulderWidthGain in place
+of the previous fixed 0.8. Armhole depth is multiplied by armholeDepthGain BEFORE
+halving and converting to rows. Other rounding, neck, bust and raglan rules stay
+unchanged. These factors are requested defaults, not proof of improved fit.
+The existing geometry and numeric-range checks apply after multiplication.
+
+Validation rejects nonpositive/non-finite measurements and gauge, missing
+request components, impossible front patches, insufficient shoulder shaping,
+negative raglan targets, nonpositive stage segments, and oversized conversions.
+The conversion ceiling (Integer.MAX_VALUE / 16) is an arithmetic safety bound,
+not a biological sizing limit. No supported human sizing range is yet approved.
+
+Reference case (characterization only)
+--------------------------------------
+Historical request, NORMAL, explicit gains 1.0 (armhole) and 0.8 (shoulder):
+Stage                  Body stitches   Shoulder/underarm each   Total
+Cast on                84              10                       104
+After neck             124             10                       144
+After shoulder         164             10                       184
+After sleeve increases 164             40                       244
+After raglan           184             50                       284
+Body after separation  184             10                       204
+Each completed sleeve starts with 60 stitches; shoulder rounds after neck=10.
+These values match the tracked default example at introduction of the safety net.
+The historical golden file is retained unchanged and tested with explicit gains.
+
+Current defaults, same measurements and gauge:
+Shoulder target = 46 * 0.85 = 39.1 cm; front patch = 18.75 cm.
+Shoulder shaping length = (39.1 - 18.75) / 2 = 10.175 cm.
+Conversion = 22.385 stitches -> 22, versus the previous 20.
+Armhole shaping length = 21 * 1.2 / 2 = 12.6 cm.
+Conversion = 35.28 rows -> 36; 18 increase repeats, versus the previous 15.
+Stage                  Body stitches   Shoulder/underarm each   Total
+Cast on                84              10                       104
+After neck             124             10                       144
+After shoulder         172             10                       192
+After sleeve increases 172             46                       264
+After raglan           184             52                       288
+Body after separation  184             10                       204
+Each sleeve starts with 62 stitches; shoulder rounds after neck=12.
+These cases are automated arithmetic regressions, not expert-approved fit cases.
+Additional shoulder shaping reduces subsequent raglan repeats from 5 to 3 at
+the same chest target; overall fit depends on the combined shaping stages.
+
+Review queue — do not guess
+---------------------------
+* Confirm cumulative shoulder accounting and short-row descriptions.
+* Confirm independent horizontal stitch and vertical row rounding policies.
+* Confirm redistribution cannot create unsuitable shoulder patches.
+* Confirm raglan denominator, underarm additions, and target chest tolerance.
+* Confirm neck/armhole fit, body stopping-length origin, and sleeve length origin.
+* Decide whether currently unused measurements should drive new shaping features.
+
+Approval gates
+--------------
+A human knitting reviewer must provide approved numerical cases across intended
+gauges, sizes, and fits; review the text against the counts; and record a practical
+knit-through before claiming supported sizing or garment correctness.
+Record each future formula change with its rationale, old/new numerical cases,
+reviewer approval, and dedicated tests. No approved correctness fixture exists yet.

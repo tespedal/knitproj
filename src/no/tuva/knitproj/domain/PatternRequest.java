@@ -10,6 +10,9 @@ public class PatternRequest {
             Gauge gauge,
             FitPreference fitPreference
     ) {
+        if (measurements == null || gauge == null || fitPreference == null) {
+            throw new IllegalArgumentException("Measurements, gauge, and fit preference are required.");
+        }
         this.measurements = measurements;
         this.gauge = gauge;
         this.fitPreference = fitPreference;

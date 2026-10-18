@@ -5,11 +5,8 @@ import no.tuva.knitproj.service.EaseCalculator;
 import no.tuva.knitproj.service.StitchCalculator;
 
 public class TeeCalculator {
-    private static final int RAGLAN_LINES = 4;
     private static final int CHEST_RAGLAN_LINES = 4;
-    private static final int SHOULDER_RAGLAN_LINES = 4;
-    private static final int NECK_INCREASE_ROUNDS = 10;
-    private static final double SHOULDER_WIDTH_FACTOR = 0.8;
+    static final int NECK_INCREASE_ROUNDS = 10;
 
     private final EaseCalculator easeCalculator;
     private final StitchCalculator stitchCalculator;
@@ -20,6 +17,16 @@ public class TeeCalculator {
     }
 
     public TeeCalculationResults calculate(PatternRequest request) {
+        return calculate(request, new TeeOptions());
+    }
+
+    public TeeCalculationResults calculate(PatternRequest request, TeeOptions options) {
+        if (request == null) {
+            throw new IllegalArgumentException("Pattern request is required.");
+        }
+        if (options == null) {
+            throw new IllegalArgumentException("T-shirt options are required.");
+        }
         Measurements measurements = request.getMeasurements();
         Gauge gauge = request.getGauge();
 
@@ -28,6 +35,9 @@ public class TeeCalculator {
 
         double shoulderPatchCm = measurements.shoulderAcrossCm();
         double frontPatchCm = (neckCm - 2 * shoulderPatchCm) / 2;
+        if (frontPatchCm <= 0) {
+            throw new IllegalArgumentException("Neck circumference with ease must exceed both shoulder patches.");
+        }
 
         TeeStage castOnNeck = new TeeStage(
                 "Cast on neck",
@@ -45,9 +55,12 @@ public class TeeCalculator {
         );
 
         double shoulderLengthCm =
-                (measurements.shoulderWidthCm() * SHOULDER_WIDTH_FACTOR - frontPatchCm) / 2;
+                (measurements.shoulderWidthCm() * options.shoulderWidthGain() - frontPatchCm) / 2;
 
         int shoulderLengthStitches = widthStitches(shoulderLengthCm, gauge);
+        if (shoulderLengthStitches < NECK_INCREASE_ROUNDS) {
+            throw new IllegalArgumentException("Shoulder width cannot accommodate the ten neck-shaping rounds.");
+        }
 
         TeeStage afterShoulder = castOnNeck.addBody(
                 "After shoulder increases",
@@ -55,9 +68,9 @@ public class TeeCalculator {
                 shoulderLengthStitches
         );
 
-        double armholeLengthCm = measurements.armholeDepthCm() / 2;
-        int armholeLengthStitches = heightStitches(armholeLengthCm, gauge);
-        int armholeIncreases = armholeLengthStitches / 2;
+        double armholeLengthCm = measurements.armholeDepthCm() * options.armholeDepthGain() / 2;
+        int armholeRows = heightRows(armholeLengthCm, gauge);
+        int armholeIncreases = armholeRows / 2;
 
         TeeStage afterArmInc = afterShoulder.addShoulders(
                 "After armhole increases",
@@ -72,6 +85,9 @@ public class TeeCalculator {
 
         int targetChestStitches = widthStitches(finishedChestCm, gauge);
         int raglanIncreases = (targetChestStitches - afterArmInc.bodyStitches() - castOnNeck.shoulder()) / CHEST_RAGLAN_LINES;
+        if (targetChestStitches < afterArmInc.bodyStitches() + castOnNeck.shoulder()) {
+            throw new IllegalArgumentException("Bust target is too small for the preceding shoulder shaping.");
+        }
 
         TeeStage afterRaglan = afterArmInc.addBodyAndShoulders(
                 "After raglan increases",
@@ -85,6 +101,13 @@ public class TeeCalculator {
         );
 
 
+
+        for (TeeStage stage : new TeeStage[]{castOnNeck, afterNeck, afterShoulder,
+                afterArmInc, afterRaglan, afterArmHole}) {
+            if (stage.halfBody() <= 0 || stage.shoulder() <= 0 || stage.nrIncreases() < 0) {
+                throw new IllegalArgumentException("Measurements produce an invalid stage: " + stage.name());
+            }
+        }
 
         return new TeeCalculationResults(
                 castOnNeck,
@@ -101,7 +124,7 @@ public class TeeCalculator {
         return stitchCalculator.calculateStitches(cm, gauge.getStitchesPer10Cm());
     }
 
-    private int heightStitches(double cm, Gauge gauge) {
+    private int heightRows(double cm, Gauge gauge) {
         return stitchCalculator.calculateStitches(cm, gauge.getStitchesPer10CmHeight());
     }
 }

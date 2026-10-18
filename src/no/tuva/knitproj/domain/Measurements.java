@@ -5,6 +5,17 @@ public record Measurements(double neckCircumferenceCm, double shoulderWidthCm, d
                            double backLengthCm, double armholeDepthCm, double upperArmCircumferenceCm,
                            double bodyLengthCm) {
 
+    public Measurements {
+        double[] values = {neckCircumferenceCm, shoulderWidthCm, shoulderAcrossCm,
+                bustCircumferenceCm, underbustCircumferenceCm, waistCircumferenceCm,
+                backLengthCm, armholeDepthCm, upperArmCircumferenceCm, bodyLengthCm};
+        for (double value : values) {
+            if (!Double.isFinite(value) || value <= 0) {
+                throw new IllegalArgumentException("All measurements must be finite, positive centimetres.");
+            }
+        }
+    }
+
     // Default: Medium size
     public Measurements() {
         this(
