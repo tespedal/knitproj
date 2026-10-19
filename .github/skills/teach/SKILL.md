@@ -14,7 +14,7 @@ Treat the current directory as a teaching workspace. Workspace paths (`./lessons
 - `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. Use the format in [MISSION-FORMAT.md](./MISSION-FORMAT.md).
 - `./reference/*.html`: A directory of reference materials. These are the compressed learnings from the lessons - cheat sheets, reference algorithms, syntax, yoga poses, glossaries. They are the raw units of learning. They should be beautiful documents which print out well, and are designed for quick reference.
 - `RESOURCES.md`: A list of resources which can be explored to ground your teaching in contextual knowledge, or to acquire knowledge and wisdom. Use the format in [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md).
-- `./learning-records/*.md`: A directory of learning records, which capture what the user has learned. These are loosely equivalent to architectural decision records in software development - they capture non-obvious lessons and key insights that may need to be revised later, or drive future sessions. They are used to calculate the zone of proximal development. They are titled `0001-<dash-case-name>.md`, where the number increments each time. Use the format in [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md).
+- `./learning-records/*.md`: A directory of learning records, which capture what the user has learned. These are loosely equivalent to architectural decision records in software development - they capture non-obvious lessons and key insights that may need to be revised later, or drive future sessions. They are titled `0001-<dash-case-name>.md`, where the number increments each time. Use the format in [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md).
 - `./lessons/*.html`: A directory of lessons. A **lesson** is a single, self-contained HTML output that teaches one tightly-scoped thing tied to the mission. This is the primary unit of teaching in this workspace.
 - `./assets/*`: Reusable **components** shared across lessons. See [Assets](#assets).
 - `NOTES.md`: A scratchpad for you to jot down user preferences, or working notes.
@@ -74,6 +74,8 @@ Every lesson should be tied into the mission - the reason that the user is inter
 
 If the user is unclear about the mission, or the `MISSION.md` is not populated, your first job should be to question the user on why they want to learn this.
 
+Failing to understand the mission will mean knowledge acquisition is not grounded in real-world goals. Lessons will feel too abstract. You will have no way of judging what the user should do next.
+
 Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md` and add a learning record to capture the change. Confirm with the user before changing the mission.
 
 ## Zone Of Proximal Development
@@ -103,7 +105,7 @@ For skill acquisition, difficulty is the tool. Effortful retrieval is what build
 - Interactive lessons, using quizzes and light in-browser tasks
 - Lessons which guide the user through a list of real-world steps to take (for instance, yoga poses)
 
-Each of these should be based on a **feedback loop**, where the user receives feedback on their performance. This feedback loop should be as tight as possible, and ideally automatic.
+Each of these should be based on a **feedback loop**, where the user receives feedback on their performance. This feedback loop should be as tight as possible - and ideally automatically.
 
 For quizzes, each answer should be exactly the same number of words (and characters, if possible). Vary which position holds the correct answer across questions. Don't give the user any clues about the answer through formatting or order.
 
@@ -129,7 +131,7 @@ Some learning topics lend themselves to reference:
 - Algorithms and flowcharts for processes
 - Yoga poses and sequences for yoga
 - Exercises and routines for fitness
-- Glossaries, for any topic with its own nomenclature
+- Glossaries, in particular, are an essential reference.
 
 Glossaries, in particular, are an essential reference. Once one is created, it should be adhered to in every lesson.
 
