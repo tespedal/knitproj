@@ -27,6 +27,31 @@ Do not select the input file as the output path if you want to retain it.
 --explain prints stage counts for review; the pattern itself remains Norwegian.
 Exit codes: 0 success/help, 1 file I/O error, 2 invalid request or arguments.
 
+Local browser interface
+-----------------------
+After building, run:
+
+  java -jar target/knitproj-1.0.0-SNAPSHOT.jar --ui
+
+Open the printed http://127.0.0.1 address in a browser on the same computer.
+The port is selected automatically. Stop the server with Ctrl+C.
+--ui is a standalone mode; do not combine it with CLI generation flags.
+
+The Norwegian form starts with the same defaults as the CLI. It exposes body
+measurements, sleeve length, Normal/Oversized fit, shaping gains, gauge and needle
+size. Expand "Andre kroppsmål" for inputs that do not yet affect shaping.
+"Generer oppskrift" validates the values and displays a preview.
+"Lagre som .txt" downloads the preview as UTF-8 text through your browser.
+After editing values, generate again before saving an updated pattern.
+Validation failures retain the submitted values; no pattern file is written.
+"Tilbakestill til standard" opens a fresh form with the current defaults.
+
+The interface runs only on IPv4 loopback, uses no external services or libraries,
+and does not persist measurements. Your browser manages downloaded files and may
+retain form/history data; use a private window on shared computers.
+The same Java engine and knitting limitations apply; a preview is not fit approval.
+Existing command-line generation and its default output path are unchanged.
+
 Input
 -----
 Input is a UTF-8 Java properties file, not executable configuration. Omitted
@@ -59,6 +84,7 @@ No framework, runtime AI service, or distributed infrastructure is required.
   pattern/tee     Legacy deterministic calculations, stages, Norwegian template
   application     PatternGenerator: request + options -> counts + pattern
   cli             UTF-8 properties adapter
+  web             Local HTTP adapter, Norwegian form, preview and browser download
   service         Ease/conversion, plain-text formatter, filesystem adapter
   Main            CLI orchestration and process exit status
 
