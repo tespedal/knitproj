@@ -148,7 +148,7 @@ public final class PatternWebServer implements AutoCloseable {
         headers.set("Content-Type", type + "; charset=utf-8");
         headers.set("Cache-Control", "no-store");
         headers.set("X-Content-Type-Options", "nosniff");
-        headers.set("Referrer-Policy", "no-referrer");
+        headers.set("Referrer-Policy", "same-origin");
         headers.set("Content-Security-Policy",
                 "default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; "
                         + "frame-ancestors 'none'; base-uri 'none'");

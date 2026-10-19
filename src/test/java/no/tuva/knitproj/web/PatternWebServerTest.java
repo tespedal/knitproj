@@ -118,6 +118,7 @@ class PatternWebServerTest {
         URI local = URI.create(server.uri().toString().replace("127.0.0.1", "localhost"));
         var page = client.send(HttpRequest.newBuilder(local).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, page.statusCode());
+        assertEquals("same-origin", page.headers().firstValue("Referrer-Policy").orElseThrow());
         assertEquals(200, client.send(HttpRequest.newBuilder(local.resolve("/style.css")).GET().build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
         var response = client.send(HttpRequest.newBuilder(local.resolve("/generate"))
@@ -126,6 +127,7 @@ class PatternWebServerTest {
                 .POST(HttpRequest.BodyPublishers.ofString("token=" + token(page.body())))
                 .build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
+        assertEquals("same-origin", response.headers().firstValue("Referrer-Policy").orElseThrow());
         assertEquals(pattern(PatternInput.defaults()), preview(response.body()));
         assertEquals(403, client.send(HttpRequest.newBuilder(local.resolve("/generate"))
                 .header("Origin", "http://localhost.evil.example:" + local.getPort())
@@ -135,6 +137,17 @@ class PatternWebServerTest {
                 .header("Origin", server.uri().toString().replaceFirst("/$", ""))
                 .POST(HttpRequest.BodyPublishers.ofString("")).build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
+    }
+
+    @Test
+    void opaqueNullOriginIsRejectedEvenWithAValidFormToken() throws Exception {
+        var response = client.send(HttpRequest.newBuilder(server.uri().resolve("/generate"))
+                .header("Origin", "null")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("token=" + token(get("/").body())))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(403, response.statusCode());
+        assertFalse(response.body().contains("id=\"download\""));
     }
 
     @Test
