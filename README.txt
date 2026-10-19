@@ -29,13 +29,38 @@ Exit codes: 0 success/help, 1 file I/O error, 2 invalid request or arguments.
 
 Local browser interface
 -----------------------
-After building, run:
+Quick start (JDK 17 required): in a terminal in the repository root on YOUR
+computer, build and launch with one command:
+
+  ./mvnw package && java -jar target/knitproj-1.0.0-SNAPSHOT.jar --ui
+
+Windows Command Prompt:
+
+  mvnw.cmd package && java -jar target/knitproj-1.0.0-SNAPSHOT.jar --ui
+
+Then open http://localhost:8080 in your browser. Keep the terminal running;
+stop with Ctrl+C. The first build needs network access for Maven dependencies.
+For subsequent launches without rebuilding:
 
   java -jar target/knitproj-1.0.0-SNAPSHOT.jar --ui
 
-Open the printed http://127.0.0.1 address in a browser on the same computer.
-The port is selected automatically. Stop the server with Ctrl+C.
---ui is a standalone mode; do not combine it with CLI generation flags.
+Both http://localhost:8080 and http://127.0.0.1:8080 work on the same computer.
+If port 8080 is occupied, choose another:
+
+  java -jar target/knitproj-1.0.0-SNAPSHOT.jar --ui --port 8081
+
+Open http://localhost:8081 instead. --ui accepts only the optional --port flag;
+do not combine it with CLI generation flags.
+
+Why a sandbox link does not open locally
+---------------------------------------
+localhost always means the computer running your browser, not the remote agent
+sandbox. Launching here does not publish the UI or forward its port to you.
+For remote development, use your IDE's authenticated port forwarding to map
+remote port 8080 to local port 8080, then open http://localhost:8080. Keep the
+forward private and preserve the localhost Host/Origin headers. Public preview
+URLs are deliberately not accepted. Otherwise, run the quick-start command on
+your own computer. Do not expose the server to the internet.
 
 The Norwegian form starts with the same defaults as the CLI. It exposes body
 measurements, sleeve length, Normal/Oversized fit, shaping gains, gauge and needle

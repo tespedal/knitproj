@@ -20,7 +20,11 @@ public final class PatternWebServer implements AutoCloseable {
     private final String token = UUID.randomUUID().toString();
 
     public PatternWebServer() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0), 0);
+        this(0);
+    }
+
+    public PatternWebServer(int port) throws IOException {
+        server = HttpServer.create(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 0);
         server.createContext("/", this::handle);
         server.start();
     }
@@ -36,10 +40,11 @@ public final class PatternWebServer implements AutoCloseable {
 
     private void handle(HttpExchange exchange) throws IOException {
         try (exchange) {
-            String origin = uri().toString().replaceFirst("/$", "");
-            if (!uri().getAuthority().equals(exchange.getRequestHeaders().getFirst("Host"))
+            String host = exchange.getRequestHeaders().getFirst("Host");
+            if ((!uri().getAuthority().equals(host)
+                    && !("localhost:" + server.getAddress().getPort()).equals(host))
                     || (exchange.getRequestHeaders().containsKey("Origin")
-                    && !origin.equals(exchange.getRequestHeaders().getFirst("Origin")))) {
+                    && !("http://" + host).equals(exchange.getRequestHeaders().getFirst("Origin")))) {
                 send(exchange, 403, "text/plain", "Kun lokale forespørsler fra denne siden er tillatt.");
                 return;
             }

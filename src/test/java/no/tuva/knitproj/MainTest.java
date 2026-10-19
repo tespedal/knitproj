@@ -106,6 +106,29 @@ class MainTest {
     }
 
     @Test
+    void uiUsesPredictableDefaultPortAndAllowsAnAlternate() {
+        assertEquals(8080, Main.uiPort(new String[]{"--ui"}));
+        assertEquals(8081, Main.uiPort(new String[]{"--ui", "--port", "8081"}));
+        assertEquals(65535, Main.uiPort(new String[]{"--ui", "--port", "65535"}));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "65536", "abc", "8080.5"})
+    void invalidUiPortsHaveActionableDiagnostics(String port) {
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> Main.uiPort(new String[]{"--ui", "--port", port}));
+        assertTrue(error.getMessage().contains("1 til 65535"));
+    }
+
+    @Test
+    void uiRejectsMissingPortAndMixedGenerationFlags() {
+        assertThrows(IllegalArgumentException.class, () -> Main.uiPort(new String[]{"--ui", "--port"}));
+        assertThrows(IllegalArgumentException.class, () -> Main.uiPort(new String[]{"--ui", "--explain"}));
+        assertThrows(IllegalArgumentException.class,
+                () -> Main.uiPort(new String[]{"--ui", "--output", "pattern.txt"}));
+    }
+
+    @Test
     void helpSucceedsWithoutGeneratingAFile() {
         var result = run("--help");
         assertEquals(0, result.status());

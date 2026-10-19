@@ -12,25 +12,48 @@ import no.tuva.knitproj.web.PatternWebServer;
 
 public class Main {
     public static void main(String[] args) {
-        if (args.length == 1 && args[0].equals("--ui")) {
-            try (var server = new PatternWebServer()) {
+        if (args.length > 0 && args[0].equals("--ui")) {
+            try (var server = new PatternWebServer(uiPort(args))) {
                 Thread shutdown = new Thread(server::close);
                 Runtime.getRuntime().addShutdownHook(shutdown);
-                System.out.println("Åpne " + server.uri() + " i nettleseren. Avslutt med Ctrl+C.");
+                System.out.println("Åpne " + server.uri().toString().replace("127.0.0.1", "localhost")
+                        + " i nettleseren på samme maskin. Avslutt med Ctrl+C.");
                 try {
                     new CountDownLatch(1).await();
                 } finally {
                     Runtime.getRuntime().removeShutdownHook(shutdown);
                 }
             } catch (IOException e) {
-                System.err.println("Kunne ikke starte nettlesergrensesnittet: " + e.getMessage());
+                System.err.println("Kunne ikke starte nettlesergrensesnittet: " + e.getMessage()
+                        + ". Hvis porten er opptatt, prøv --ui --port 8081.");
                 System.exit(1);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Ugyldig forespørsel: " + e.getMessage());
+                System.exit(2);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
             return;
         }
         System.exit(run(args, System.out, System.err));
+    }
+
+    static int uiPort(String[] args) {
+        if (args.length == 1 && args[0].equals("--ui")) {
+            return 8080;
+        }
+        if (args.length == 3 && args[0].equals("--ui") && args[1].equals("--port")) {
+            try {
+                int port = Integer.parseInt(args[2]);
+                if (port >= 1 && port <= 65535) {
+                    return port;
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Port må være et helt tall fra 1 til 65535.", e);
+            }
+            throw new IllegalArgumentException("Port må være et helt tall fra 1 til 65535.");
+        }
+        throw new IllegalArgumentException("Bruk --ui [--port 8080], uten andre valg.");
     }
 
     public static int run(String[] args, PrintStream out, PrintStream err) {
@@ -42,7 +65,7 @@ public class Main {
                 switch (args[i]) {
                     case "--help" -> {
                         out.println("Usage: knitproj [--input measurements.properties] [--output pattern.txt] [--explain]");
-                        out.println("       knitproj --ui  (local browser interface)");
+                        out.println("       knitproj --ui [--port 8080]  (http://localhost:8080)");
                         return 0;
                     }
                     case "--input", "--output" -> {

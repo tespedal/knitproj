@@ -111,6 +111,38 @@ class PatternWebServerTest {
     }
 
     @Test
+    void localhostSupportsFormAssetsAndSameOriginGeneration() throws Exception {
+        URI local = URI.create(server.uri().toString().replace("127.0.0.1", "localhost"));
+        var page = client.send(HttpRequest.newBuilder(local).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, page.statusCode());
+        assertEquals(200, client.send(HttpRequest.newBuilder(local.resolve("/style.css")).GET().build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+        var response = client.send(HttpRequest.newBuilder(local.resolve("/generate"))
+                .header("Origin", local.toString().replaceFirst("/$", ""))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("token=" + token(page.body())))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        assertEquals(pattern(PatternInput.defaults()), preview(response.body()));
+        assertEquals(403, client.send(HttpRequest.newBuilder(local.resolve("/generate"))
+                .header("Origin", "http://localhost.evil.example:" + local.getPort())
+                .POST(HttpRequest.BodyPublishers.ofString("")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(403, client.send(HttpRequest.newBuilder(local.resolve("/generate"))
+                .header("Origin", server.uri().toString().replaceFirst("/$", ""))
+                .POST(HttpRequest.BodyPublishers.ofString("")).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode());
+    }
+
+    @Test
+    void requestedPortIsUsedAndAnOccupiedPortFails() throws Exception {
+        try (var other = new PatternWebServer(0)) {
+            int port = other.uri().getPort();
+            assertThrows(IOException.class, () -> new PatternWebServer(port));
+        }
+    }
+
+    @Test
     void servesOnlyKnownResourcesAndDoesNotGenerateViaGet() throws Exception {
         assertEquals(200, get("/style.css").statusCode());
         assertTrue(get("/app.js").body().contains("new Blob"));
