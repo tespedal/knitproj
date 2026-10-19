@@ -135,6 +135,17 @@ class PatternWebServerTest {
     }
 
     @Test
+    void defaultHttpPortAcceptsBrowserAuthoritiesWithoutAPort() {
+        assertTrue(PatternWebServer.isLocalAuthority("localhost", 80));
+        assertTrue(PatternWebServer.isLocalAuthority("127.0.0.1", 80));
+        assertTrue(PatternWebServer.isLocalAuthority("localhost:80", 80));
+        assertFalse(PatternWebServer.isLocalAuthority("localhost", 8080));
+        assertFalse(PatternWebServer.isLocalAuthority("localhost:8081", 8080));
+        assertFalse(PatternWebServer.isLocalAuthority("localhost.evil.example", 80));
+        assertFalse(PatternWebServer.isLocalAuthority(null, 80));
+    }
+
+    @Test
     void requestedPortIsUsedAndAnOccupiedPortFails() throws Exception {
         try (var other = new PatternWebServer(0)) {
             int port = other.uri().getPort();

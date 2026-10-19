@@ -41,8 +41,7 @@ public final class PatternWebServer implements AutoCloseable {
     private void handle(HttpExchange exchange) throws IOException {
         try (exchange) {
             String host = exchange.getRequestHeaders().getFirst("Host");
-            if ((!uri().getAuthority().equals(host)
-                    && !("localhost:" + server.getAddress().getPort()).equals(host))
+            if (!isLocalAuthority(host, server.getAddress().getPort())
                     || (exchange.getRequestHeaders().containsKey("Origin")
                     && !("http://" + host).equals(exchange.getRequestHeaders().getFirst("Origin")))) {
                 send(exchange, 403, "text/plain", "Kun lokale forespørsler fra denne siden er tillatt.");
@@ -67,6 +66,11 @@ public final class PatternWebServer implements AutoCloseable {
                 send(exchange, 404, "text/plain", "Fant ikke siden eller handlingen.");
             }
         }
+    }
+
+    static boolean isLocalAuthority(String host, int port) {
+        return ("127.0.0.1:" + port).equals(host) || ("localhost:" + port).equals(host)
+                || (port == 80 && ("127.0.0.1".equals(host) || "localhost".equals(host)));
     }
 
     private void generate(HttpExchange exchange) throws IOException {
