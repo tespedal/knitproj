@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.Map;
 import java.util.UUID;
 import no.tuva.knitproj.application.PatternGenerator;
 import no.tuva.knitproj.cli.PatternInput;
@@ -18,12 +19,18 @@ public final class PatternWebServer implements AutoCloseable {
     private static final int MAX_BODY = 16_384;
     private final HttpServer server;
     private final String token = UUID.randomUUID().toString();
+    private final URI previewOrigin;
 
     public PatternWebServer() throws IOException {
         this(0);
     }
 
     public PatternWebServer(int port) throws IOException {
+        this(port, Map.of());
+    }
+
+    public PatternWebServer(int port, Map<String, String> environment) throws IOException {
+        previewOrigin = codespaceOrigin(port, environment);
         server = HttpServer.create(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 0);
         server.createContext("/", this::handle);
         server.start();
@@ -31,6 +38,24 @@ public final class PatternWebServer implements AutoCloseable {
 
     public URI uri() {
         return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
+    }
+
+    public URI browserUri() {
+        return previewOrigin == null ? uri() : previewOrigin.resolve("/");
+    }
+
+    static URI codespaceOrigin(int port, Map<String, String> environment) {
+        if (!"true".equals(environment.get("CODESPACES"))) {
+            return null;
+        }
+        String name = environment.get("CODESPACE_NAME");
+        String domain = environment.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN");
+        if (name == null || !name.matches("[a-z0-9]+(?:-[a-z0-9]+)*")
+                || domain == null || !domain.matches("[a-z0-9]+(?:[-.][a-z0-9]+)*\\.[a-z]{2,}")
+                || port < 1 || port > 65535) {
+            throw new IllegalArgumentException("Ugyldige Codespaces-metadata for forhåndsvisning.");
+        }
+        return URI.create("https://" + name + "-" + port + "." + domain);
     }
 
     @Override
@@ -41,10 +66,15 @@ public final class PatternWebServer implements AutoCloseable {
     private void handle(HttpExchange exchange) throws IOException {
         try (exchange) {
             String host = exchange.getRequestHeaders().getFirst("Host");
-            if (!isLocalAuthority(host, server.getAddress().getPort())
-                    || (exchange.getRequestHeaders().containsKey("Origin")
-                    && !("http://" + host).equals(exchange.getRequestHeaders().getFirst("Origin")))) {
-                send(exchange, 403, "text/plain", "Kun lokale forespørsler fra denne siden er tillatt.");
+            String origin = exchange.getRequestHeaders().getFirst("Origin");
+            boolean localHost = isLocalAuthority(host, server.getAddress().getPort());
+            boolean previewHost = previewOrigin != null && previewOrigin.getAuthority().equals(host);
+            boolean localOrigin = localHost && ("http://" + host).equals(origin);
+            boolean previewRequestOrigin = previewOrigin != null && previewOrigin.toString().equals(origin);
+            if ((!localHost && !previewHost)
+                    || (origin != null && !localOrigin && !previewRequestOrigin)) {
+                send(exchange, 403, "text/plain",
+                        "Forespørselen må komme fra den lokale siden eller denne Codespace-forhåndsvisningen.");
                 return;
             }
             String path = exchange.getRequestURI().getPath();

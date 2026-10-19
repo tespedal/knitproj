@@ -59,8 +59,22 @@ sandbox. Launching here does not publish the UI or forward its port to you.
 For remote development, use your IDE's authenticated port forwarding to map
 remote port 8080 to local port 8080, then open http://localhost:8080. Keep the
 forward private and preserve the localhost Host/Origin headers. Public preview
-URLs are deliberately not accepted. Otherwise, run the quick-start command on
-your own computer. Do not expose the server to the internet.
+URLs outside the configured Codespace are not accepted. Otherwise, run the
+quick-start command on your own computer. Do not expose the server to the internet.
+
+GitHub Codespaces (browser)
+--------------------------
+In the Codespace terminal, run the same quick-start command above. In the Ports
+tab, forward port 8080, keep its visibility PRIVATE, and choose Open in Browser.
+The app recognizes its exact HTTPS preview address from CODESPACES,
+CODESPACE_NAME and GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN, and prints that URL.
+It accepts that origin even when the forwarding proxy rewrites Host to localhost.
+It does not trust arbitrary forwarded headers or other Codespaces' addresses.
+GitHub provides authentication for the private forwarded port; the app is not
+designed for public hosting and cannot enforce the port's visibility itself.
+If these changes are newer than your Codespace checkout, first update that
+checkout to the branch/commit containing the fix. Stop the old process (Ctrl+C),
+rebuild, restart, and reload the preview to get a fresh form token.
 
 The Norwegian form starts with the same defaults as the CLI. It exposes body
 measurements, sleeve length, Normal/Oversized fit, shaping gains, gauge and needle

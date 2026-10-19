@@ -3,11 +3,14 @@ package no.tuva.knitproj.web;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.Map;
 import java.util.regex.Pattern;
 import no.tuva.knitproj.application.PatternGenerator;
 import no.tuva.knitproj.cli.PatternInput;
@@ -132,6 +135,64 @@ class PatternWebServerTest {
                 .header("Origin", server.uri().toString().replaceFirst("/$", ""))
                 .POST(HttpRequest.BodyPublishers.ofString("")).build(),
                 HttpResponse.BodyHandlers.ofString()).statusCode());
+    }
+
+    @Test
+    void codespacesProxyCanGenerateWithRewrittenOrPreservedHost() throws Exception {
+        int port;
+        try (var reservation = new ServerSocket(0)) {
+            port = reservation.getLocalPort();
+        }
+        var environment = Map.of("CODESPACES", "true", "CODESPACE_NAME", "synthetic-workspace",
+                "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev");
+        try (var forwarded = new PatternWebServer(port, environment)) {
+            String origin = "https://synthetic-workspace-" + port + ".app.github.dev";
+            assertEquals(origin + "/", forwarded.browserUri().toString());
+            var page = client.send(HttpRequest.newBuilder(forwarded.uri()).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            String formToken = token(page.body());
+            for (String host : new String[]{"localhost:" + port, "127.0.0.1:" + port,
+                    "synthetic-workspace-" + port + ".app.github.dev"}) {
+                String response = forwardedRequest(port, host, origin, formToken);
+                assertTrue(response.startsWith("HTTP/1.1 200"), response);
+                assertEquals(pattern(PatternInput.defaults()), preview(response));
+                assertTrue(forwardedRequest(port, host, "https://another-workspace-" + port + ".app.github.dev",
+                        formToken).startsWith("HTTP/1.1 403"));
+                assertTrue(forwardedRequest(port, host, origin, "wrong-token").startsWith("HTTP/1.1 403"));
+            }
+            assertTrue(forwardedRequest(port, "attacker.example", origin, formToken).startsWith("HTTP/1.1 403"));
+            assertTrue(forwardedRequest(port, "localhost:" + port, origin + ".evil.example",
+                    formToken).startsWith("HTTP/1.1 403"));
+        }
+    }
+
+    @Test
+    void codespaceMetadataMustBeExplicitAndWellFormed() {
+        assertNull(PatternWebServer.codespaceOrigin(8080, Map.of()));
+        assertEquals(URI.create("https://synthetic-workspace-8081.app.github.dev"),
+                PatternWebServer.codespaceOrigin(8081, Map.of("CODESPACES", "true",
+                        "CODESPACE_NAME", "synthetic-workspace",
+                        "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")));
+        assertThrows(IllegalArgumentException.class,
+                () -> PatternWebServer.codespaceOrigin(8080, Map.of("CODESPACES", "true")));
+        for (String invalid : new String[]{"app.github.dev/path", "app.github.dev@evil.example", "bad\nhost"}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> PatternWebServer.codespaceOrigin(8080, Map.of("CODESPACES", "true",
+                            "CODESPACE_NAME", "synthetic-workspace",
+                            "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", invalid)));
+        }
+    }
+
+    private static String forwardedRequest(int port, String host, String origin, String token) throws IOException {
+        String body = "token=" + token;
+        try (var socket = new Socket("127.0.0.1", port)) {
+            socket.setSoTimeout(5000);
+            String request = "POST /generate HTTP/1.1\r\nHost: " + host + "\r\nOrigin: " + origin
+                    + "\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: "
+                    + body.length() + "\r\nConnection: close\r\n\r\n" + body;
+            socket.getOutputStream().write(request.getBytes(StandardCharsets.UTF_8));
+            return new String(socket.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     @Test

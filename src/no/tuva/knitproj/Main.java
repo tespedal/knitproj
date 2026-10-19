@@ -13,11 +13,11 @@ import no.tuva.knitproj.web.PatternWebServer;
 public class Main {
     public static void main(String[] args) {
         if (args.length > 0 && args[0].equals("--ui")) {
-            try (var server = new PatternWebServer(uiPort(args))) {
+            try (var server = new PatternWebServer(uiPort(args), System.getenv())) {
                 Thread shutdown = new Thread(server::close);
                 Runtime.getRuntime().addShutdownHook(shutdown);
-                System.out.println("Åpne " + server.uri().toString().replace("127.0.0.1", "localhost")
-                        + " i nettleseren på samme maskin. Avslutt med Ctrl+C.");
+                System.out.println("Åpne " + server.browserUri().toString().replace("127.0.0.1", "localhost")
+                        + " i nettleseren. Hold Codespaces-porten privat. Avslutt med Ctrl+C.");
                 try {
                     new CountDownLatch(1).await();
                 } finally {
