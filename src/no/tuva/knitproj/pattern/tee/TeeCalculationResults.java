@@ -21,6 +21,10 @@ public record TeeCalculationResults(
         return afterRaglan.shoulder() + afterArmHole.shoulder();
     }
 
+    public int armholeShapingRows() {
+        return 2 * (afterArmInc.nrIncreases() + afterRaglan.nrIncreases());
+    }
+
     public String explain() {
         StringBuilder result = new StringBuilder("Calculation trace (not knitting approval)\n");
         for (TeeStage stage : new TeeStage[]{castOnNeck, afterNeck, afterShoulder,
@@ -30,6 +34,8 @@ public record TeeCalculationResults(
                     .append(", total=").append(stage.totalStitches())
                     .append(", repeats=").append(stage.nrIncreases()).append('\n');
         }
+        result.append("Armhole shaping rows (sleeve-only + raglan, after shoulder shaping)=")
+                .append(armholeShapingRows()).append('\n');
         return result.toString();
     }
 }

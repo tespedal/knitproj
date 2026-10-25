@@ -2,9 +2,16 @@ package no.tuva.knitproj;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Path;
+import java.util.Properties;
+import no.tuva.knitproj.application.GeneratedDocument;
 import no.tuva.knitproj.application.PatternGenerator;
+import no.tuva.knitproj.application.RaglanPatternGenerator;
+import no.tuva.knitproj.cli.CliArguments;
+import no.tuva.knitproj.cli.CliHelp;
 import no.tuva.knitproj.cli.PatternInput;
+import no.tuva.knitproj.cli.Utf8Properties;
+import no.tuva.knitproj.pattern.spec.TeeSpec;
+import no.tuva.knitproj.pattern.spec.SweaterSpec;
 import no.tuva.knitproj.service.PatternFileWriter;
 import no.tuva.knitproj.service.PatternTextFormatter;
 
@@ -15,37 +22,45 @@ public class Main {
 
     public static int run(String[] args, PrintStream out, PrintStream err) {
         try {
-            Path input = null;
-            Path output = Path.of("output", "tshirt-pattern.txt");
-            boolean explain = false;
-            for (int i = 0; i < args.length; i++) {
-                switch (args[i]) {
-                    case "--help" -> {
-                        out.println("Usage: knitproj [--input measurements.properties] [--output pattern.txt] [--explain]");
-                        return 0;
-                    }
-                    case "--input", "--output" -> {
-                        String flag = args[i];
-                        if (++i == args.length || args[i].startsWith("--")) {
-                            throw new IllegalArgumentException("Missing path after " + flag);
-                        }
-                        if (flag.equals("--input")) {
-                            input = Path.of(args[i]);
-                        } else {
-                            output = Path.of(args[i]);
-                        }
-                    }
-                    case "--explain" -> explain = true;
-                    default -> throw new IllegalArgumentException("Unknown argument: " + args[i]);
-                }
+            var arguments = CliArguments.parse(args);
+            if (arguments.help()) {
+                out.print(CliHelp.text());
+                return 0;
             }
-            PatternInput configuration = input == null ? PatternInput.defaults() : PatternInput.read(input);
-            var generated = new PatternGenerator().generate(configuration.request(), configuration.options());
+            Properties input = arguments.input() == null ? new Properties() : Utf8Properties.read(arguments.input());
+            GeneratedDocument generated;
+            String scaling;
+            switch (arguments.type()) {
+                case TSHIRT -> {
+                    var spec = arguments.spec() == null ? TeeSpec.bundled()
+                            : TeeSpec.fromProperties(Utf8Properties.read(arguments.spec()));
+                    var configuration = PatternInput.requestFromProperties(input, spec);
+                    var result = new PatternGenerator(spec).generate(configuration.request(), configuration.options());
+                    generated = new GeneratedDocument(result.pattern(), result.calculations().explain());
+                    scaling = "neckFactor=" + spec.neckFactor(configuration.request().getFitPreference())
+                            + ", bustFactor=" + spec.bustFactor(configuration.request().getFitPreference())
+                            + ", armholeDepthGain=" + spec.armholeDepthGain()
+                            + ", shoulderWidthGain=" + spec.shoulderWidthGain();
+                }
+                case OVERSIZED_RAGLAN -> {
+                    var spec = arguments.spec() == null ? SweaterSpec.bundled()
+                            : SweaterSpec.fromProperties(Utf8Properties.read(arguments.spec()));
+                    var configuration = PatternInput.requestFromProperties(input, spec);
+                    var result = new RaglanPatternGenerator(spec).generate(configuration.request(), configuration.options());
+                    generated = new GeneratedDocument(result.pattern(), result.calculations().explain());
+                    scaling = "neckFactor=" + spec.neckFactor() + ", bustFactor=" + spec.bustFactor()
+                            + ", depthFactor=" + spec.depthFactor();
+                }
+                default -> throw new IllegalArgumentException("Unsupported pattern.");
+            }
             String text = new PatternTextFormatter().format(generated.pattern());
-            new PatternFileWriter().writeToFile(text, output);
-            out.println("Pattern written to " + output);
-            if (explain) {
-                out.print(generated.calculations().explain());
+            new PatternFileWriter().writeToFile(text, arguments.output());
+            out.println("Pattern written to " + arguments.output());
+            if (arguments.explain()) {
+                out.println("Specification: " + (arguments.spec() == null ? "bundled " + arguments.type()
+                        : "external " + arguments.spec()));
+                out.println("Scaling: " + scaling);
+                out.print(generated.trace());
             }
             return 0;
         } catch (IllegalArgumentException e) {

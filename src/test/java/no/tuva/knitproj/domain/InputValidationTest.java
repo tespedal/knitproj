@@ -22,8 +22,7 @@ class InputValidationTest {
         }
         assertThrows(IllegalArgumentException.class, () -> new Gauge(22, 28, invalid));
         assertThrows(IllegalArgumentException.class, () -> new TeeOptions(invalid));
-        assertThrows(IllegalArgumentException.class, () -> new TeeOptions(10, invalid, 0.85));
-        assertThrows(IllegalArgumentException.class, () -> new TeeOptions(10, 1.2, invalid));
+        assertThrows(IllegalArgumentException.class, () -> new SweaterOptions(invalid));
     }
 
     @ParameterizedTest

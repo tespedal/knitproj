@@ -1,5 +1,108 @@
 PRODUCT CONTRACT AND CONSOLIDATION DECISION
 
+Configuration ownership and runtime selection (2026-10-25)
+---------------------------------------------------------
+Measurement input contains wearer measurements, gauge, fit and desired lengths
+only. Scaling/construction settings belong exclusively to the selected complete
+TeeSpec or SweaterSpec, including gains, factors, finish lengths and sleeve
+defaults. No gain-bearing domain options or parser override channels remain.
+Known construction keys in measurement input (including both gains on either
+pattern) are rejected with an actionable --spec migration message.
+
+--spec PATH reads a complete external UTF-8 replacement for the selected pattern,
+without a rebuild and without overlays, formula interpretation or dependencies.
+Omission selects that pattern's bundled resource. Load the selected spec once;
+the same instance supplies parser defaults, all scaling and spec-dependent
+wording. Main composes only the selected generator; no unselected construction
+resource is loaded. Programmatic PatternGenerationService() remains an eager
+bundled convenience; injected generators or individual typed generators support
+selected-spec use. Selected-spec parser overloads never reload bundled defaults.
+
+Missing --spec argument: exit 2. Missing/unreadable external file: exit 1.
+Unknown/missing/wrong-pattern schema keys or invalid values: exit 2 before output
+writing. --help reads no external input/spec files. --explain names the source
+and effective scaling, without dumping measurement input or altering pattern
+bytes. Existing selectors, alias, output defaults and approved arithmetic remain.
+
+Source migration: TeeOptions(sleeveLengthCm, depthGain, shoulderGain) is removed.
+Use TeeOptions(sleeveLengthCm), put gains in the selected TeeSpec, and pass it to
+PatternGenerator or TeeCalculator(TeeSpec, StitchCalculator), not EaseCalculator
+plus options. Both option types remain positive finite sleeve-only domain values.
+Use PatternInput.requestFromProperties(properties, selectedSpec) for injected
+defaults; type-only convenience adapters explicitly select bundled specs.
+
+Input/example migration: remove scaling keys from measurement input and move
+them to a COMPLETE matching spec. Only the two gain lines and obsolete comment
+were removed from examples/measurements.properties; its edited wearer values,
+gauge and lengths were preserved. New examples/tshirt.properties copies current
+bundled factors/default sleeve, with the former input gains 1.2 and 0.85.
+Continue that experiment using:
+  java -jar target/knitproj-1.0.0-SNAPSHOT.jar \
+    --input examples/measurements.properties --spec examples/tshirt.properties \
+    --output output/custom-pattern.txt --explain
+The bundled T-shirt experiment remains unchanged at depth gain 1.1, shoulder
+gain 0.85 and NORMAL/OVERSIZED bust factors 1.1/1.3. Do not confuse historical
+reference/default values below with editable current resources or fit approval.
+Tests pin numerical cases to explicit specs; original goldens remain untouched.
+This cleanup changes configuration ownership, not the approved full-depth
+formula below, rounding, stitch accounting or supported sizing.
+
+Approved T-shirt depth-budget change (2026-10-25)
+------------------------------------------------
+The user approved full eased armhole depth, without halving, as the combined
+sleeve-only and raglan stage height after shoulder shaping. Earlier neck and
+shoulder shaping remain additional. This supersedes the historical half-depth
+arithmetic and reference counts recorded below, which remain historical evidence.
+The sweater construction is unchanged.
+
+Compute bust-driven raglan repeats R with the existing chest formula and rounding.
+Target rows H = E(armholeDepthCm * armholeDepthGain, rowsPer10Cm), where E rounds
+to an integer then raises odd values. Remaining rows = H - 2R.
+Reject negative remaining rows with actionable depth/bust/gauge suggestions.
+Sleeve-only repeats = remaining rows / 2; zero is allowed and explicitly skipped.
+The knitting order remains sleeve-only increases then raglan increases.
+Body width and raglan repeats do not change; sleeves and shaping height do.
+Upper-arm circumference still does not enforce a minimum sleeve width.
+
+Reviewed numerical case: neck=35, shoulder width=46, shoulder patch=4, bust=89,
+armhole depth=21 cm; NORMAL neck/bust factors=1.3/1.1, gains=1.2/0.85;
+gauge=24 stitches and 28 rows per 10 cm.
+Target depth=25.2 cm; 70.56 raw rows -> 72 rows; R=9 (18 rows).
+Sleeve-only repeats=27 (54 rows), previously 18 (36 rows).
+Cast-on=112; after shoulder=208; after sleeve-only=316; after raglan=388;
+separated body=244; held sleeve each=82; sleeve after pickup=92 stitches.
+Previously the corresponding counts were 112,208,280,352,244,64,74.
+Actual combined depth=25.714... cm, previously 19.285... cm.
+These are user-approved formula expectations, not a fit or knit-through approval.
+The original T-shirt golden file is not regenerated: its historical counts can
+still be rendered by explicit historical scaling and a 40-row combined budget
+(gain 40 / (21 * 2.8)). Tests pin those inputs independently of editable defaults.
+
+Pattern resource refactor
+-------------------------
+Architecture clarification (2026-10-25): options are explicit domain values,
+without bundled resource reads. Specification factories supply defaults and
+validate their own sleeve/cuff compatibility. The actual CLI generation path
+carries a typed T-shirt or raglan request; historical PatternInput methods are
+compatibility adapters only. This changes source-level option construction, not
+knitting mathematics. The later ownership cleanup above intentionally changes
+measurement-file gain behavior. See docs/architecture-plan.md
+and docs/wiki/index.md for the evaluation, migration and maintained source map.
+
+Pattern scaling/defaults now live in bundled UTF-8 properties, one specification
+per construction under src/main/resources/patterns. tshirt.properties retains
+NORMAL/OVERSIZED scaling; oversized-raglan.properties retains fixed scaling.
+Measurement input remains separate. Explicit sleeve length overrides its default;
+scaling can only be changed through the selected spec.
+Norwegian reusable wording lives in text-no.properties, with checked named
+placeholders. Construction-specific text remains separate where instructions
+differ; no formula is interpreted from a text resource or specification.
+Both constructions reuse stitch/row conversion and two-row repeat calculations.
+The separate construction calculators preserve historical accounting differences.
+This is a behavior-preserving extraction, not knitting approval or a change in
+formulas, fit, rounding, or supported sizing. The sweater's pre-refactor output is
+captured in default-raglan-pattern.txt alongside the original T-shirt snapshot.
+
 Priority: usable knitting patterns, maintainability, then development automation.
 
 Inventory
@@ -8,7 +111,8 @@ The inspected checkout contains one Java implementation and one generated text
 example. Entry point: no.tuva.knitproj.Main. Construction: top-down T-shirt with
 neck short rows, shoulder increases, sleeve increases, raglan increases, body,
 and two short sleeves. Fit values: NORMAL and OVERSIZED. Output: Norwegian text.
-User input, sleeve length, and armhole/shoulder gains are configurable.
+Wearer input and sleeve length are configurable in measurements; armhole/shoulder
+gains are configurable exclusively in the selected construction specification.
 
 Decision: retain Java 17 as the provisional canonical engine. Do not rewrite or
 delete an unseen implementation. When it becomes available, compare the same
@@ -33,7 +137,7 @@ the clearer rowsPer10Cm. This naming improvement does not change row arithmetic.
 Sleeve length is measured as stated in the existing sleeve instructions and
 defaults to 10 cm. There is no automatic gauge-to-needle-size inference.
 
-Preserved arithmetic
+Historical preserved arithmetic (explicit reference factors, not live defaults)
 --------------------
 NORMAL: bust multiplier 1.0, neck multiplier 1.3.
 OVERSIZED: bust multiplier 1.1, neck multiplier 1.5.
@@ -46,7 +150,7 @@ Post-shoulder counts are calculated cumulatively from cast-on, not from after-ne
 Raglan repeats use integer division; residual stitches are not redistributed.
 These are characterization facts, except for the requested gain changes below.
 
-User-requested gain change
+Historical user-requested gain change (superseded depth formula and ownership)
 --------------------------
 Following a knit test reported as too tight at the armholes, the user requested
 multiplicative gains with defaults armholeDepthGain=1.2 and shoulderWidthGain=0.85.
@@ -77,7 +181,7 @@ Each completed sleeve starts with 60 stitches; shoulder rounds after neck=10.
 These values match the tracked default example at introduction of the safety net.
 The historical golden file is retained unchanged and tested with explicit gains.
 
-Current defaults, same measurements and gauge:
+Historical former defaults, same synthetic measurements and gauge:
 Shoulder target = 46 * 0.85 = 39.1 cm; front patch = 18.75 cm.
 Shoulder shaping length = (39.1 - 18.75) / 2 = 10.175 cm.
 Conversion = 22.385 stitches -> 22, versus the previous 20.
@@ -111,3 +215,90 @@ gauges, sizes, and fits; review the text against the counts; and record a practi
 knit-through before claiming supported sizing or garment correctness.
 Record each future formula change with its rationale, old/new numerical cases,
 reviewer approval, and dedicated tests. No approved correctness fixture exists yet.
+
+NEW SELECTABLE OVERSIZED RAGLAN — IMPLEMENTATION ASSUMPTIONS
+-----------------------------------------------------------
+Selector: oversized_raglan; exact requested alias: overzided_raglan.
+Default selection and all T-shirt formulas remain unchanged. The new sweater
+has a separate calculator, results and template. No expert approval, supported
+size range or practical knit-through is claimed for this new construction.
+
+The requested factors apply directly, independent of fit and legacy gains:
+  neck target cm = neckCircumferenceCm * 1.3
+  chest target cm = bustCircumferenceCm * 1.5
+  raglan-stage depth cm = full armholeDepthCm * 1.4 (NOT halved)
+Neck and shoulder increases precede this full raglan length. It is not the total
+yoke depth. Rows use rowsPer10Cm, never horizontal stitchesPer10Cm.
+
+Let E(cm, gauge) be the shared conversion: Math.round(cm * gauge / 10),
+then increment an odd answer. It retains its numeric safety bound.
+Neck and chest use Q(cm, gauge) = 2 * E(cm / 2, gauge). Q gives multiples of four
+so equal front/back and paired shoulder increases consume every residual stitch.
+For raw total x, -1 <= Q - x < 3 stitches (floating-point tolerance aside).
+This policy is deliberately explicit; it does not alter the T-shirt converter.
+
+N = Q(neck target, horizontal gauge).
+U = E(shoulderAcrossCm, horizontal gauge), reused as each underarm cast-on.
+Each sleeve patch starts at U; front and back each start at (N - 2U) / 2.
+Both must be positive. Four fixed neck repeats each comprise one increase round
+adding two to front and two to back, then one plain round: +16 total body stitches,
+no sleeve change. This is symmetric widening, NOT short-row neck shaping.
+Every subsequent stage starts from the preceding counts, never from cast-on.
+
+Raglan rows H = E(raglan-stage depth, vertical gauge), repeats R = H / 2.
+Each two-round raglan repeat adds eight total: four body, two to each sleeve.
+Let C = Q(chest target, horizontal gauge) and Bn = body stitches after neck.
+Residual shoulder stitches = C - 2U - Bn - 4R.
+Negative residual is rejected: the requested chest cannot contain depth-driven
+raglan shaping, neck shaping and underarms. No negative repeat is truncated.
+Shoulder repeats S = residual / 4 (exact, no remainder under Q and even U).
+Each repeat has +4 body on one round, then one plain round, sleeves unchanged.
+S and R may be zero; text explicitly skips the corresponding stage.
+There are four boundary markers, not four additional raglan stitches.
+Body-only increases sit immediately inside front/back boundary markers;
+raglan increases sit on both sides of all four markers.
+
+Before separation body = Bn + 4S + 4R; each sleeve = U + 2R.
+After separation body = C = preceding body + 2U;
+each sleeve starts from held sleeve stitches + U picked up under its arm.
+Completed body plus both sleeve counts = yoke total + 4U: each underarm
+opportunity is used once in the body and once in its sleeve.
+
+Length and finishing assumptions:
+  neckband = 2 cm, hem = 4 cm, cuffs = 4 cm, all 1x1 ribbing.
+  yoke length after neckband = (8 + 2S + H) * 10 / rowsPer10Cm.
+  straight body below underarm = bodyLengthCm - 2 - yoke length - 4.
+  straight sleeve = sleeveLengthCm - 4; sleeve default = 45 cm from underarm.
+Require positive straight lengths, rejecting excessive shoulder/yoke width for
+the available body length. Do not invent a taper, upper-arm fit or short rows.
+Lengths are written as approximate centimetres (one decimal); counts are exact.
+All straight sections retain their separation counts; both sleeves end with
+ribbing and a loose bind-off. Finish by closing small underarm holes, weaving
+ends and washing/blocking. Yarn quantity is not estimated.
+
+Synthetic reference: default measurements, gauge 22 stitches / 28 rows per 10 cm.
+Neck target=45.5 cm, chest target=133.5 cm, raglan target depth=29.4 cm.
+N=100, U=10, C=296 (raw chest=293.7, error=+2.3 stitches).
+H=82 rows, R=41 repeats, actual raglan depth=29.285714... cm.
+Bn=96; shoulder residual=296 - 20 - 96 - 164=16; S=4 repeats.
+Stage                  Front   Back    Each sleeve   Body    Total
+Cast on                40      40      10            80      100
+After neck             48      48      10            96      116
+After shoulder         56      56      10            112     132
+After raglan           138     138     92            276     460
+Body after separation                               296
+Each sleeve after underarm pickup: 102 stitches.
+Yoke excluding neckband=98 rows=35 cm; body below underarm=21 cm,
+including 4 cm hem (17 cm straight); total length=58 cm.
+Each sleeve has 41 cm straight + 4 cm cuff=45 cm.
+At armholeDepthCm=23: H=90, R=45, S=0. At depth=24 the chest target is
+incompatible and rejected. A tiny positive depth may round to zero raglan rows;
+that boundary is arithmetically supported, not a recommended wearable size.
+
+Current input compatibility: common wearer properties and validation are retained.
+Unknown keys still fail. fit does not affect this sweater; T-shirt gain keys in
+measurement input are now rejected, not accepted-and-ignored.
+shoulderWidthCm, underbustCircumferenceCm, waistCircumferenceCm,
+backLengthCm and upperArmCircumferenceCm are validated but do not shape it.
+Only the sweater uses bodyLengthCm as the total cast-on-to-hem length; the tee
+retains its backLengthCm convention. Changing these assumptions requires review.

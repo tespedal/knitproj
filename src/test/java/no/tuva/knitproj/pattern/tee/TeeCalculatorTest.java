@@ -11,9 +11,9 @@ import no.tuva.knitproj.domain.Measurements;
 import no.tuva.knitproj.domain.PatternRequest;
 import no.tuva.knitproj.domain.PatternResult;
 import no.tuva.knitproj.domain.TeeOptions;
-import no.tuva.knitproj.service.EaseCalculator;
 import no.tuva.knitproj.service.PatternTextFormatter;
 import no.tuva.knitproj.service.StitchCalculator;
+import no.tuva.knitproj.pattern.spec.TeeSpec;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -21,14 +21,20 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TeeCalculatorTest {
-    private final TeeCalculator calculator = new TeeCalculator(new EaseCalculator(), new StitchCalculator());
+    private final TeeCalculator calculator = new TeeCalculator(
+            new TeeSpec(1.3, 1.5, 1.0, 1.1, 1.2, 0.85, 10), new StitchCalculator());
+
+    private TeeCalculator withGains(double depth, double shoulder) {
+        return new TeeCalculator(new TeeSpec(1.3, 1.5, 1, 1.1, depth, shoulder, 10),
+                new StitchCalculator());
+    }
 
     @Test
-    void explicitLegacyGainsMatchOutputCapturedBeforeRefactoring() throws IOException {
+    void explicitHistoricalScalingAndCombinedBudgetRetainOriginalGolden() throws IOException {
         PatternRequest request = request(22, 28, FitPreference.NORMAL);
         String actual = new PatternTextFormatter().format(
                 new PatternResult(new TeeTemplate().createSections(request,
-                        calculator.calculate(request, new TeeOptions(10, 1.0, 0.8)))));
+                        withGains(40.0 / (21 * 2.8), 0.8).calculate(request), new TeeOptions(10))));
         try (var stream = getClass().getResourceAsStream("/default-pattern.txt")) {
             assertNotNull(stream);
             assertEquals(new String(stream.readAllBytes(), StandardCharsets.UTF_8), actual);
@@ -36,33 +42,31 @@ class TeeCalculatorTest {
     }
 
     @Test
-    void defaultStageValuesPreserveLegacyArithmetic() {
-        TeeCalculationResults result = calculator.calculate(request(22, 28, FitPreference.NORMAL),
-                new TeeOptions(10, 1.0, 0.8));
+    void fullDepthBudgetPreservesBustAccountingWithHistoricalScaling() {
+        TeeCalculationResults result = withGains(1.0, 0.8).calculate(request(22, 28, FitPreference.NORMAL));
         assertEquals(List.of(
                 new TeeStage("Cast on neck", 42, 10, 0),
                 new TeeStage("After neck increases", 62, 10, 0),
                 new TeeStage("After shoulder increases", 82, 10, 20),
-                new TeeStage("After armhole increases", 82, 40, 15),
-                new TeeStage("After raglan increases", 92, 50, 5),
+                new TeeStage("After armhole increases", 82, 60, 25),
+                new TeeStage("After raglan increases", 92, 70, 5),
                 new TeeStage("After arm holes", 92, 10, 0)), stages(result));
         assertEquals(41, result.backLength());
     }
 
     @ParameterizedTest
     @CsvSource({
-            "18,24,NORMAL,84,124,148,200,240,168",
-            "18,24,OVERSIZED,96,136,152,204,268,184",
-            "22,28,NORMAL,104,144,184,244,284,204",
-            "22,28,OVERSIZED,120,160,184,244,324,224",
-            "26,32,NORMAL,120,160,216,284,332,240",
-            "26,32,OVERSIZED,136,176,216,284,380,264"
+            "18,24,NORMAL,84,124,148,228,268,168",
+            "18,24,OVERSIZED,96,136,152,220,284,184",
+            "22,28,NORMAL,104,144,184,284,324,204",
+            "22,28,OVERSIZED,120,160,184,264,344,224",
+            "26,32,NORMAL,120,160,216,328,376,240",
+            "26,32,OVERSIZED,136,176,216,304,400,264"
     })
-    void gaugesAndFitPreserveCapturedStageTotals(int width, int height, FitPreference fit,
+    void gaugesAndFitUseFullDepthBudget(int width, int height, FitPreference fit,
                                                 int castOn, int neck, int shoulder,
                                                 int arm, int raglan, int body) {
-        TeeCalculationResults result = calculator.calculate(request(width, height, fit),
-                new TeeOptions(10, 1.0, 0.8));
+        TeeCalculationResults result = withGains(1.0, 0.8).calculate(request(width, height, fit));
         assertEquals(List.of(castOn, neck, shoulder, arm, raglan, body),
                 stages(result).stream().map(TeeStage::totalStitches).toList());
         for (TeeStage stage : stages(result)) {
@@ -108,17 +112,16 @@ class TeeCalculatorTest {
 
     @ParameterizedTest
     @CsvSource({
-            "1.0,0.8,164,40,15,50,5,60",
-            "1.2,0.8,164,46,18,56,5,66",
-            "1.0,0.85,172,40,15,46,3,56",
-            "1.2,0.85,172,46,18,52,3,62",
-            "1.4,0.8,164,52,21,62,5,72"
+            "1.0,0.8,164,60,25,70,5,80",
+            "1.2,0.8,164,72,31,82,5,92",
+            "1.0,0.85,172,64,27,70,3,80",
+            "1.2,0.85,172,76,33,82,3,92",
+            "1.4,0.8,164,82,36,92,5,102"
     })
     void gainFactorsApplyBeforeConversionAndPreserveStitchAccounting(
             double armholeGain, double shoulderGain, int body, int armShoulder,
             int armRepeats, int raglanShoulder, int raglanRepeats, int sleeve) {
-        var result = calculator.calculate(request(22, 28, FitPreference.NORMAL),
-                new TeeOptions(10, armholeGain, shoulderGain));
+        var result = withGains(armholeGain, shoulderGain).calculate(request(22, 28, FitPreference.NORMAL));
         assertEquals(body, result.afterShoulder().bodyStitches());
         assertEquals(armShoulder, result.afterArmInc().shoulder());
         assertEquals(armRepeats, result.afterArmInc().nrIncreases());
@@ -133,19 +136,19 @@ class TeeCalculatorTest {
     }
 
     @Test
-    void defaultsUseRequestedGains() {
+    void calculatorUsesItsSelectedSpecificationEvenWithoutExplicitOptions() {
         var request = request(22, 28, FitPreference.NORMAL);
         var result = calculator.calculate(request);
-        assertEquals(calculator.calculate(request, new TeeOptions(10, 1.2, 0.85)), result);
+        assertEquals(calculator.calculate(request, new TeeOptions(10)), result);
         assertEquals(192, result.afterShoulder().totalStitches());
-        assertEquals(264, result.afterArmInc().totalStitches());
-        assertEquals(288, result.afterRaglan().totalStitches());
+        assertEquals(324, result.afterArmInc().totalStitches());
+        assertEquals(348, result.afterRaglan().totalStitches());
     }
 
     @ParameterizedTest
-    @CsvSource({"18,24,156,216,240,52", "22,28,192,264,288,62",
-            "26,32,224,304,336,68"})
-    void newDefaultsUseHorizontalAndVerticalGaugesSeparately(
+    @CsvSource({"18,24,156,264,288,76", "22,28,192,324,348,92",
+            "26,32,224,372,404,102"})
+    void explicitReferenceSpecUsesHorizontalAndVerticalGaugesSeparately(
             int stitches, int rows, int shoulderTotal, int armTotal, int raglanTotal, int sleeve) {
         var result = calculator.calculate(request(stitches, rows, FitPreference.NORMAL));
         assertEquals(shoulderTotal, result.afterShoulder().totalStitches());
@@ -158,8 +161,8 @@ class TeeCalculatorTest {
     @CsvSource({"1.2,0.1", "1.2,2.0", "1.7976931348623157E308,0.85",
             "1.2,1.7976931348623157E308"})
     void incompatibleOrOverflowingGainsAreRejected(double armholeGain, double shoulderGain) {
-        assertThrows(IllegalArgumentException.class, () -> calculator.calculate(
-                request(22, 28, FitPreference.NORMAL), new TeeOptions(10, armholeGain, shoulderGain)));
+        assertThrows(IllegalArgumentException.class, () -> withGains(armholeGain, shoulderGain).calculate(
+                request(22, 28, FitPreference.NORMAL)));
     }
 
     private static PatternRequest request(int width, int height, FitPreference fit) {

@@ -1,19 +1,27 @@
 package no.tuva.knitproj.service;
 
 import no.tuva.knitproj.domain.FitPreference;
+import no.tuva.knitproj.pattern.spec.TeeSpec;
 
 public class EaseCalculator {
+    private final TeeSpec spec;
+
+    public EaseCalculator() {
+        this(TeeSpec.bundled());
+    }
+
+    public EaseCalculator(TeeSpec spec) {
+        if (spec == null) {
+            throw new IllegalArgumentException("T-shirt specification is required.");
+        }
+        this.spec = spec;
+    }
+
     public double calculateBustEaseGain(FitPreference fitPreference) {
-        return switch (fitPreference) {
-            case NORMAL -> 1.0;
-            case OVERSIZED -> 1.1;
-        };
+        return spec.bustFactor(fitPreference);
     }
     public double calculateNeckEaseGain(FitPreference fitPreference) {
-        return switch (fitPreference){
-            case NORMAL -> 1.3;
-            case OVERSIZED -> 1.5;
-        };
+        return spec.neckFactor(fitPreference);
     }
     public int calculateNeckType(String neckShape) {
         return switch (neckShape){
@@ -22,4 +30,3 @@ public class EaseCalculator {
         };
     }
 }
-

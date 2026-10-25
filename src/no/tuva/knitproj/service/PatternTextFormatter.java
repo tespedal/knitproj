@@ -8,7 +8,7 @@ public class PatternTextFormatter {
     public String format(PatternResult result) {
         StringBuilder builder = new StringBuilder();
 
-        builder.append("TILPASSET T-SKJORTEOPPSKRIFT\n");
+        builder.append(result.title()).append("\n");
         builder.append("==========================\n\n");
 
         for (PatternSection section : result.sections()) {

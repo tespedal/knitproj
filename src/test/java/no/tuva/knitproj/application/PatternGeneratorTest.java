@@ -7,6 +7,7 @@ import no.tuva.knitproj.domain.Gauge;
 import no.tuva.knitproj.domain.Measurements;
 import no.tuva.knitproj.domain.PatternRequest;
 import no.tuva.knitproj.domain.TeeOptions;
+import no.tuva.knitproj.pattern.spec.TeeSpec;
 import no.tuva.knitproj.service.PatternTextFormatter;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +20,9 @@ class PatternGeneratorTest {
     private final PatternTextFormatter formatter = new PatternTextFormatter();
 
     @Test
-    void legacyGainsMatchCapturedOutput() throws IOException {
-        GeneratedPattern generated = generator.generate(request, new TeeOptions(10, 1.0, 0.8));
+    void explicitHistoricalScalingAndCombinedBudgetMatchCapturedOutput() throws IOException {
+        var historical = new PatternGenerator(new TeeSpec(1.3, 1.5, 1, 1.1, 40.0 / (21 * 2.8), 0.8, 10));
+        GeneratedPattern generated = historical.generate(request);
         try (var stream = getClass().getResourceAsStream("/default-pattern.txt")) {
             assertNotNull(stream);
             assertEquals(new String(stream.readAllBytes(), StandardCharsets.UTF_8),
@@ -28,13 +30,15 @@ class PatternGeneratorTest {
         }
         assertEquals(41, generated.calculations().backLength());
         assertEquals(generator.generate(request).calculations(),
-                generator.generate(request, new TeeOptions()).calculations());
+                generator.generate(request, TeeSpec.bundled().defaultOptions()).calculations());
     }
 
     @Test
     void customSleeveLengthChangesOnlySleeveTextNotCalculations() {
-        GeneratedPattern standard = generator.generate(request);
-        GeneratedPattern custom = generator.generate(request, new TeeOptions(12.5));
+        var spec = new TeeSpec(1.3, 1.5, 1, 1.1, 1.2, 0.85, 10);
+        var selected = new PatternGenerator(spec);
+        GeneratedPattern standard = selected.generate(request);
+        GeneratedPattern custom = selected.generate(request, spec.optionsWithSleeveLength(12.5));
         assertEquals(standard.calculations(), custom.calculations());
         assertEquals(formatter.format(standard.pattern()).replace("ermet måler 10 cm", "ermet måler 12.5 cm"),
                 formatter.format(custom.pattern()));

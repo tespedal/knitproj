@@ -11,7 +11,8 @@ class CalculationServicesTest {
     @ParameterizedTest
     @CsvSource({"NORMAL,1.0,1.3", "OVERSIZED,1.1,1.5"})
     void easeMultipliersAreStable(FitPreference fit, double bust, double neck) {
-        EaseCalculator calculator = new EaseCalculator();
+        EaseCalculator calculator = new EaseCalculator(
+                new no.tuva.knitproj.pattern.spec.TeeSpec(1.3, 1.5, 1, 1.1, 1.2, 0.85, 10));
         assertEquals(bust, calculator.calculateBustEaseGain(fit));
         assertEquals(neck, calculator.calculateNeckEaseGain(fit));
     }

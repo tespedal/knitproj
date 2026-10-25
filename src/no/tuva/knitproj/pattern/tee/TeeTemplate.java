@@ -1,16 +1,20 @@
 package no.tuva.knitproj.pattern.tee;
 
 import no.tuva.knitproj.domain.*;
+import no.tuva.knitproj.pattern.spec.TeeSpec;
 
 import java.util.List;
+import java.util.Map;
+import no.tuva.knitproj.resources.PatternText;
 
 public class TeeTemplate {
+    private final PatternText text = new PatternText();
 
     public List<PatternSection> createSections(
             PatternRequest request,
             TeeCalculationResults values
     ) {
-        return createSections(request, values, new TeeOptions());
+        return createSections(request, values, TeeSpec.bundled().defaultOptions());
     }
 
     public List<PatternSection> createSections(
@@ -35,7 +39,8 @@ public class TeeTemplate {
 
                         new PatternParagraph(
                                 "Opplegg",
-                                "Legg opp " + castOn.totalStitches() + " masker på rundpinne " + gauge.getNeedleSize()
+                                text.render("common.castOn", Map.of("stitches", castOn.totalStitches()))
+                                        + text.render("tee.castOnNeedle", Map.of("needle", gauge.getNeedleSize()))
                         ),
 
                         new PatternParagraph(
@@ -108,7 +113,9 @@ public class TeeTemplate {
                         ),
                         new PatternParagraph(
                                 "Videre skal det økes til ermer mens maskeantallet på bak- og forstykket holdes konstant. Dette gjøres slik:",
-                                "1. omgang: Strikk rett til maskemarkøren, øk venstre, strikk ermemaskene, øk høyre, " +
+                                afterArmInc.nrIncreases() == 0
+                                        ? "Ingen ermeøkninger trengs. Fortsett direkte til raglanøkningene."
+                                        : "1. omgang: Strikk rett til maskemarkøren, øk venstre, strikk ermemaskene, øk høyre, " +
                                         "strikk rett over forstykket, øk venstre, strikk ermemaskene, øk høyre, " +
                                         "strikk til starten av omgangen.\n" +
                                         "2. omgang: Strikk rett hele omgangen, uten økninger.\n\n" +
@@ -120,11 +127,8 @@ public class TeeTemplate {
                 new PatternSection("Raglanøkninger", List.of(
                         new PatternParagraph(
                                 "Videre skal det strikkes raglanøkninger på hver 2. omgang på følgende måte:",
-                                "1. omgang: Strikk rett til 1 maske før maskemarkør, øk høyre, strikk 2 r, øk venstre. " +
-                                        "Gjenta økningen for alle 4 maskemarkører (= 8 masker økt).\n" +
-                                        "2. omgang: Strikk rett.\n\n" +
-                                        "Strikk disse 2 omgangene totalt " + afterRaglan.nrIncreases() +
-                                        " ganger = " + afterRaglan.totalStitches() + " masker."
+                                text.render("tee.raglan", Map.of("repeats", afterRaglan.nrIncreases(),
+                                        "total", afterRaglan.totalStitches()))
                         )
                 )),
 
@@ -144,7 +148,7 @@ public class TeeTemplate {
                         ),
                         new PatternParagraph(
                                 "Strikk rundt i glattstrikk til tskjorten måler " + values.backLength() + " cm.",
-                                "Fell av maskene og fest tråden."
+                                text.render("common.bindOff", Map.of())
 
                         )
                 )),
@@ -161,7 +165,7 @@ public class TeeTemplate {
                                 "Strikk rundt i glattstrikk til ermet måler " +
                                         java.math.BigDecimal.valueOf(options.sleeveLengthCm())
                                                 .stripTrailingZeros().toPlainString() + " cm.",
-                                "Fell av maskene og fest tråden. Strikk det andre ermet på samme måte."
+                                text.render("common.bindOff", Map.of()) + text.render("tee.sleeveFinish", Map.of())
 
                         )
                 ))
